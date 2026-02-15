@@ -132,6 +132,30 @@ services:
       MINIO_ROOT_PASSWORD: minio_password
     command: server --console-address ":9001" /data
 
+  minio-setup:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+        sleep 10;
+        mc alias set myminio http://minio:9000 minio_user minio_password;
+        mc mb myminio/reports --ignore-existing;
+        mc anonymous set public myminio/reports;
+        exit 0
+      "
+    restart: on-failure
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8083:8080"  # <-- CDN endpoint
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - minio
+    restart: always
+
   crm_db: 
     image: postgres:14
     environment:
@@ -261,8 +285,14 @@ services:
       - CLICKHOUSE_USER=default
       - CLICKHOUSE_PASSWORD=
       - CLICKHOUSE_DATABASE=default
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minio_user
+      - MINIO_SECRET_KEY=minio_password
+      - MINIO_SECURE=false
+      - CDN_BASE_URL=http://localhost:8083
     depends_on:
       - olap_db
+      - minio
     restart: always
 
 volumes:

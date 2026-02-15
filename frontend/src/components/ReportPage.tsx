@@ -4,34 +4,38 @@ const ReportPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const downloadReport = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+const downloadReport = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    const reportResponse = await fetch(`${process.env.REACT_APP_API_URL}/reports`, {
+      credentials: 'include'
+    });
 
-      // Example: fetch report after getting access
-      const reportResponse = await fetch(`${process.env.REACT_APP_API_URL}/reports`, {
-        credentials: 'include'
-      });
-
-      if (!reportResponse.ok) {
-        throw new Error(`Report fetch failed: ${reportResponse.status}`);
-      }
-
-      // Handle report download
-      const blob = await reportResponse.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'report.csv';
-      a.click();
-
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
+    if (!reportResponse.ok) {
+      throw new Error(`Report fetch failed: ${reportResponse.status}`);
     }
-  };
+
+    const data = await reportResponse.json();
+    const downloadUrl = data.download_url; // <-- Получаем URL из CDN
+
+    if (!downloadUrl) {
+      throw new Error("Download URL not provided");
+    }
+
+    // Скачиваем по URL
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.target = "_blank"; // Открыть в новой вкладке
+    link.download = 'report.json'; // или .csv, в зависимости от формата
+    link.click();
+
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'An error occurred');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">

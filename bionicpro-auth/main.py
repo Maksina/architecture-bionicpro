@@ -281,11 +281,9 @@ async def get_reports(request: Request):
     # Декодируем токен, чтобы получить email
     try:
         decoded_token = decode_jwt_token(session_data["access_token"])
-        logger.info(f"Decoded JWT: {decoded_token}")  # <-- Логируем для проверки
         email = decoded_token.get("email")
         if not email:
             raise HTTPException(status_code=401, detail="Email not found in token")
-        logger.info(f"Extracted email: {email}")  # <-- Логируем email
     except Exception as e:
         logger.error(f"Could not decode JWT: {e}")
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -295,7 +293,7 @@ async def get_reports(request: Request):
     headers = {
         "Authorization": f"Bearer {session_data['access_token']}",
         "Accept": "application/json",
-        "X-User-Email": email  # <-- Передаём email вместо user_id
+        "X-User-Email": email
     }
 
     try:
@@ -303,7 +301,15 @@ async def get_reports(request: Request):
         if api_resp.status_code != 200:
             raise HTTPException(status_code=api_resp.status_code, detail="API request failed")
 
-        response = Response(content=api_resp.content, media_type="application/json")
+        # Вместо JSON-данных возвращаем URL к CDN
+        response_data = api_resp.json()
+        cdn_url = response_data.get("cdn_url")
+
+        if not cdn_url:
+            raise HTTPException(status_code=500, detail="CDN URL not provided")
+
+        # Возвращаем URL для скачивания
+        response = JSONResponse({"download_url": cdn_url})
     except requests.exceptions.RequestException:
         raise HTTPException(status_code=500, detail="Failed to fetch reports from API")
 

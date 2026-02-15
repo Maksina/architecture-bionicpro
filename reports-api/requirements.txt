@@ -4,3 +4,5 @@ clickhouse-driver
 pandas
 openpyxl  
 reportlab
+minio
+python-multipart
