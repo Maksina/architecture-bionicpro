@@ -1,0 +1,8 @@
+fastapi==0.104.1
+uvicorn[standard]
+python-keycloak>=2.1.0,<3.0.0
+redis
+cryptography
+requests
+python-multipart
+python-jose[cryptography]
