@@ -1,0 +1,3 @@
+clickhouse-driver
+pandas
+apache-airflow-providers-postgres

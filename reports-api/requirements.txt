@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+clickhouse-driver
+pandas
+openpyxl  
+reportlab
+minio
+python-multipart
