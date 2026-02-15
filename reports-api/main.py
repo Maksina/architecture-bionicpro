@@ -76,7 +76,7 @@ async def get_reports(request: Request):
 
     # Получаем данные из ClickHouse
     client = get_clickhouse_client()
-    query = "SELECT * FROM user_usage_report WHERE customer_email = %(email)s ORDER BY signal_time DESC LIMIT 100"
+    query = "SELECT * FROM user_usage_report_new WHERE customer_email = %(email)s ORDER BY signal_time DESC LIMIT 100"
     rows = client.execute(query, {'email': email})
 
     columns = [
@@ -104,7 +104,7 @@ async def get_reports(request: Request):
         raise HTTPException(status_code=500, detail=f"Failed to save report to MinIO: {e}")
 
     # Возвращаем CDN URL
-    cdn_url = f"http://nginx:8080/reports/{report_filename}"
+    cdn_url = f"{CDN_BASE_URL}/reports/{report_filename}"
     return JSONResponse({"cdn_url": cdn_url, "cached_at": datetime.utcnow().isoformat()})
 
 @app.get("/reports/raw")
@@ -115,7 +115,7 @@ async def get_reports_raw(request: Request):
         raise HTTPException(status_code=400, detail="X-User-Email header is required")
 
     client = get_clickhouse_client()
-    query = "SELECT * FROM user_usage_report WHERE customer_email = %(email)s ORDER BY signal_time DESC LIMIT 100"
+    query = "SELECT * FROM user_usage_report_new WHERE customer_email = %(email)s ORDER BY signal_time DESC LIMIT 100"
     rows = client.execute(query, {'email': email})
 
     columns = [
