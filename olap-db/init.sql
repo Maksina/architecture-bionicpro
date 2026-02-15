@@ -33,6 +33,11 @@ CREATE TABLE IF NOT EXISTS raw_customers (
 ) ENGINE = ReplacingMergeTree(ts)
 ORDER BY id;
 
+CREATE VIEW IF NOT EXISTS raw_customers_final AS
+SELECT *
+FROM raw_customers
+FINAL;
+
 CREATE TABLE IF NOT EXISTS kafka_customers (
     id UInt32,
     name String,
@@ -71,7 +76,7 @@ SOURCE(CLICKHOUSE(
     host 'localhost'
     port 9000
     user 'default'
-    table 'raw_customers'
+    table 'raw_customers_final'
 ))
 LIFETIME(MIN 5 MAX 10)
 LAYOUT(HASHED());

@@ -327,7 +327,7 @@ services:
 
 
   debezium:
-    image: quay.io/debezium/connect:2.4Ц
+    image: quay.io/debezium/connect:2.4
     depends_on:
       - kafka
       - crm_db
