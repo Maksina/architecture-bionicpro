@@ -9,17 +9,6 @@ const ReportPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/protected`, {
-        credentials: 'include'  // Important: include session cookie
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log("Access granted:", data);
-      
       // Example: fetch report after getting access
       const reportResponse = await fetch(`${process.env.REACT_APP_API_URL}/reports`, {
         credentials: 'include'
@@ -34,7 +23,7 @@ const ReportPage: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'report.pdf';
+      a.download = 'report.csv';
       a.click();
 
     } catch (err) {

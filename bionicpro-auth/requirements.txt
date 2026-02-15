@@ -6,3 +6,4 @@ cryptography
 requests
 python-multipart
 python-jose[cryptography]
+PyJWT[crypto]

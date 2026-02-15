@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from urllib.parse import urlencode
 import requests
 from starlette.responses import Response
+import jwt
 
 # --- ADD LOGGER ---
 import logging
@@ -38,6 +39,7 @@ REALM = os.getenv("KEYCLOAK_REALM", "reports-realm")
 CLIENT_ID = os.getenv("CLIENT_ID", "reports-frontend")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+KEYCLOAK_JWKS_URL = f"{KEYCLOAK_INTERNAL_URL}/realms/{REALM}/protocol/openid-connect/certs"
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
@@ -276,11 +278,24 @@ async def get_reports(request: Request):
         session_data["expires_in"] = new_tokens["expires_in"]
         await update_session(new_session_id, session_data)
 
-    # Forward request to real API (example: reports-api)
-    api_url = os.getenv("REPORTS_API_URL", "http://reports-api:8000/reports")  # <-- Укажите ваш API
+    # Декодируем токен, чтобы получить email
+    try:
+        decoded_token = decode_jwt_token(session_data["access_token"])
+        logger.info(f"Decoded JWT: {decoded_token}")  # <-- Логируем для проверки
+        email = decoded_token.get("email")
+        if not email:
+            raise HTTPException(status_code=401, detail="Email not found in token")
+        logger.info(f"Extracted email: {email}")  # <-- Логируем email
+    except Exception as e:
+        logger.error(f"Could not decode JWT: {e}")
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    # Forward request to reports-api
+    api_url = os.getenv("REPORTS_API_URL", "http://reports-api:8000/reports")
     headers = {
         "Authorization": f"Bearer {session_data['access_token']}",
-        "Accept": "application/json"
+        "Accept": "application/json",
+        "X-User-Email": email  # <-- Передаём email вместо user_id
     }
 
     try:
@@ -301,6 +316,21 @@ async def get_reports(request: Request):
         max_age=SESSION_EXPIRE_SECONDS
     )
     return response
+
+def get_public_key(jwt_token: str):
+    header = jwt.get_unverified_header(jwt_token)
+    kid = header.get("kid")
+    resp = requests.get(KEYCLOAK_JWKS_URL)
+    jwks = resp.json()
+    for jwk in jwks['keys']:
+        if jwk['kid'] == kid:
+            from jwt.algorithms import RSAAlgorithm
+            return RSAAlgorithm.from_jwk(json.dumps(jwk))
+    return None
+
+def decode_jwt_token(jwt_token: str):
+    public_key = get_public_key(jwt_token)
+    return jwt.decode(jwt_token, public_key, algorithms=["RS256"])
 
 if __name__ == "__main__":
     import uvicorn
